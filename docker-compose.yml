@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  scatac-repro:
+    build: .
+    container_name: scatac-repro
+    privileged: true          # Docker-in-Docker
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/home/jovyan/work    # Monta la repo
+      - docker-cache:/var/lib/docker  
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    stdin_open: true
+    tty: true
+
+volumes:
+  docker-cache:

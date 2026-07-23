@@ -1,0 +1,17 @@
+data/
+*.pkl
+*.bw
+*.bam
+*.fastq
+*.fastq.gz
+*.fragments.tsv.gz
+*.fragments.tsv.gz.tbi
+work/
+.nextflow/
+tmp/
+venv/
+.venv/
+.ipynb_checkpoints/
+.DS_Store
+.vscode/
+.idea/
