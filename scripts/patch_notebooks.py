@@ -130,6 +130,20 @@ CELL27_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 nextflow -C atac_preprocess_rapid.config run PUMATAC/main_atac.nf -entry atac_preprocess_rapid
 '''
 
+NOTEBOOK0_KERNEL_MARKER = 'KERNEL_PATH=("/data2/florian'
+NOTEBOOK0_KERNEL_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
+# This section (and the following cells, up to "4. Example FASTQ") documents
+# how the original authors built a dedicated Jupyter kernel from a
+# Singularity image with pycisTopic pre-installed, using paths specific to
+# their VSC cluster. This is not needed in this project: pycisTopic is
+# installed directly into the same Python environment used by the standard
+# "python3" Jupyter kernel (see Dockerfile, and scripts/patch_notebooks.py
+# KERNEL_PATCHES), so no dedicated kernel is required. Notebooks that
+# originally assumed the "cistopic_20230504" kernel (5_qc_diagnosis.ipynb)
+# have been repointed to "python3" accordingly.
+print("Skipped: no dedicated kernel needed, see comment above.")
+'''
+
 # List of (notebook filename, marker to find, replacement source) patches.
 # Add new entries here as new incompatibilities are found, each with a
 # comment explaining the reason - this list doubles as a changelog of
@@ -169,6 +183,11 @@ PATCHES = [
         "2_running_nextflow_pipeline.ipynb",
         CELL27_MARKER,
         CELL27_REPLACEMENT,
+    ),
+    (
+        "0_resources.ipynb",
+        NOTEBOOK0_KERNEL_MARKER,
+        NOTEBOOK0_KERNEL_REPLACEMENT,
     ),
 ]
 
@@ -221,5 +240,58 @@ def apply_patches():
         print("WARNING: no patch targets were found. Check whether the upstream notebooks changed.")
 
 
+# --- Kernel patches ---
+# Separate from the cell-content patches above: these change a notebook's
+# kernelspec metadata (which kernel it opens with), not a cell's source.
+# The original tutorial notebooks assume kernels that do not exist in this
+# project: "bash" for 1_write_metadata.ipynb (should be Python, since it
+# imports pypumatac/pandas), and a VSC-cluster-specific Singularity kernel
+# ("cistopic_20230504", built from a .sif image with a path only valid on
+# the original authors' cluster) for 5_qc_diagnosis.ipynb. In this project,
+# pycisTopic is installed directly into the same Python environment used by
+# the standard "python3" Jupyter kernel (verified: the python3 kernel and
+# the terminal's `python3` resolve to the same interpreter), so no dedicated
+# kernel or sys.path workaround is needed - just pointing these notebooks at
+# "python3" is sufficient. 2_running_nextflow_pipeline.ipynb is correctly
+# left on "bash" (it runs shell/Nextflow commands, not Python).
+KERNEL_PATCHES = [
+    ("1_write_metadata.ipynb", "python3"),
+    ("5_qc_diagnosis.ipynb", "python3"),
+]
+
+PYTHON3_KERNELSPEC = {
+    "display_name": "Python 3 (ipykernel)",
+    "language": "python",
+    "name": "python3",
+}
+
+
+def apply_kernel_patches():
+    applied = 0
+    skipped = 0
+
+    for filename, kernel_name in KERNEL_PATCHES:
+        nb_path = os.path.join(NOTEBOOKS_DIR, filename)
+
+        if not os.path.exists(nb_path):
+            print(f"WARNING: {filename} not found in {NOTEBOOKS_DIR}, skipping kernel patch.")
+            continue
+
+        nb = nbformat.read(nb_path, as_version=4)
+        current = nb.metadata.get("kernelspec", {}).get("name")
+
+        if current == kernel_name:
+            print(f"{filename}: kernel already set to '{kernel_name}', nothing to do.")
+            skipped += 1
+        else:
+            nb.metadata["kernelspec"] = dict(PYTHON3_KERNELSPEC)
+            nbformat.write(nb, nb_path)
+            print(f"{filename}: kernel changed from '{current}' to '{kernel_name}'.")
+            applied += 1
+
+    print(f"\nKernel patches applied: {applied}, already up to date: {skipped}.")
+
+
 if __name__ == "__main__":
     apply_patches()
+    apply_kernel_patches()

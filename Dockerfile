@@ -62,6 +62,8 @@ RUN pip install --no-cache-dir \
     scikit-learn==1.3.0 \
     matplotlib==3.7.2 \
     seaborn==0.12.2 \
+    palettable==3.3.3 \
+    jupyter-black==0.4.0 \
     pillow
 
 # -----------------------------------------------------------

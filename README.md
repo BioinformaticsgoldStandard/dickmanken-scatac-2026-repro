@@ -127,12 +127,20 @@ All software versions are explicitly pinned in the Dockerfile, with one exceptio
 | seaborn                  | 0.12.2                       |
 | scikit-learn             | 1.3.0                        |
 | MACS2                    | 2.2.9.1                      |
+| palettable               | 3.3.3                        |
+| jupyter-black            | 0.4.0                        |
 | samtools                 | not pinned - see note        |
 | bedtools                 | not pinned - see note        |
 | bwa                      | not pinned - see note        |
 | picard                   | not pinned - see note        |
 
 Note on samtools/bedtools/bwa/picard: these are currently installed via apt-get install without an explicit version pin, so the exact version depends on the Ubuntu package repository state at build time. This is a known deviation from the "pin everything" principle followed elsewhere in this project, to be addressed in a future revision.
+
+Note on palettable and jupyter-black: these are dependencies of pypumatac.py (a helper module used by the downloaded PUMATAC tutorial notebooks), not of the core reproduction pipeline itself.
+
+### A note on notebook kernels
+
+The downloaded PUMATAC tutorial notebooks assume Jupyter kernels that do not exist in this project: a "bash" kernel for 1_write_metadata.ipynb (should be Python, since it imports pandas/pypumatac), and a kernel built from a Singularity image specific to the original authors' VSC cluster for 5_qc_diagnosis.ipynb. scripts/patch_notebooks.py automatically repoints both notebooks to the standard "python3" kernel, into which pycisTopic and its dependencies are installed directly (no dedicated kernel or sys.path workaround needed). 2_running_nextflow_pipeline.ipynb is correctly left on the "bash" kernel, since it runs shell/Nextflow commands rather than Python.
 
 A full frozen list of Python packages is available inside the container (requirements.txt).
 
