@@ -63,9 +63,12 @@ FASTQ_DIR_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # Original cell pointed to a placeholder directory ("10x_fastq/") that
 # does not exist in this project. Point it to the real FASTQ location
 # downloaded by scripts/download_data.py for the sample analyzed in this
-# reproduction (8k mouse cortex ATAC v2). Absolute path is used to avoid
-# ambiguity about the notebook's working directory at execution time.
-fastq_dir = "/home/jovyan/work/data/10x_v2/8k_mouse_cortex_ATACv2_nextgem_Chromium_Controller_fastqs"
+# reproduction (8k mouse cortex ATAC v2). A relative path (anchored to the
+# notebook's own location) is used instead of an absolute one, so this
+# works both inside the Docker container (repo mounted at /home/jovyan/work)
+# and when running natively on a server without that mount (repo cloned
+# under an arbitrary path, e.g. ~/work/repo on the university JupyterHub).
+fastq_dir = "../../data/10x_v2/8k_mouse_cortex_ATACv2_nextgem_Chromium_Controller_fastqs"
 '''
 
 # --- Notebook 2 (running_nextflow_pipeline) patches ---
