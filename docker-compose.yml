@@ -1,24 +1,26 @@
-version: '3.8'
 
 services:
   scatac-repro:
     build: .
     container_name: scatac-repro
-    privileged: true
-    user: root
     ports:
       - "8888:8888"
+    # Required for Apptainer to run unprivileged inside this Docker
+    # container (not the same as `privileged: true` - these only relax
+    # two specific confinement mechanisms, as documented by Apptainer
+    # itself: https://apptainer.org/docs/admin/main/installation.html).
+    # seccomp:unconfined allows the "unshare" syscall (always needed by
+    # Apptainer); systempaths=unconfined allows mounting /proc inside an
+    # unprivileged namespace.
+    security_opt:
+      - seccomp:unconfined
+      - systempaths=unconfined
     volumes:
       - .:/home/jovyan/work
-      - docker-cache:/var/lib/docker
     environment:
-      - DOCKER_HOST=unix:///var/run/docker.sock
       - NB_USER=jovyan
       - NB_UID=1000
       - NB_GID=100
     working_dir: /home/jovyan/work
     stdin_open: true
     tty: true
-
-volumes:
-  docker-cache:

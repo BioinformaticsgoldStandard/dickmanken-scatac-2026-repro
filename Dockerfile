@@ -4,7 +4,7 @@
 FROM jupyter/datascience-notebook:python-3.11
 
 # -----------------------------------------------------------
-# 2. ROOT section: system tools + Docker installation
+# 2. ROOT section: system tools + Apptainer installation
 # -----------------------------------------------------------
 USER root
 
@@ -13,31 +13,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
     wget curl git unzip build-essential \
     samtools bedtools bwa picard \
-    ca-certificates gnupg lsb-release \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# ---- Docker Engine installation (DinD) ----
-# Add the official Docker GPG key and repository
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine, CLI and containerd
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    docker-ce docker-ce-cli containerd.io \
+# ---- Apptainer installation ----
+# Installed from the official .deb release asset (pinned version) rather
+# than via PPA, to avoid depending on an external repository at build time.
+ARG APPTAINER_VERSION=1.4.5
+RUN wget -q https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb -O /tmp/apptainer.deb \
+    && apt-get update && apt-get install -y /tmp/apptainer.deb \
+    && rm /tmp/apptainer.deb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Add jovyan user to the docker group (so sudo is not needed)
-RUN usermod -aG docker jovyan
 
 # ---- MACS2 installation (via pip) ----
 RUN pip install --no-cache-dir macs2==2.2.9.1
 
 # ---- Nextflow installation ----
-RUN wget -qO- https://get.nextflow.io | bash \
-    && chmod +x nextflow \
-    && mv nextflow /usr/local/bin/
+# Pinned to 21.04.3: PUMATAC's own nextflow.config enforces this exact
+# version (nextflowVersion = '!21.04.3'), so any other version would be
+# rejected by the pipeline at runtime.
+RUN wget -q https://github.com/nextflow-io/nextflow/releases/download/v21.04.3/nextflow-21.04.3-all -O /usr/local/bin/nextflow \
+    && chmod +x /usr/local/bin/nextflow
 
 # -----------------------------------------------------------
 # 3. USER section (jovyan): Python packages and specific tools
@@ -67,7 +65,7 @@ RUN pip install --no-cache-dir \
     pillow
 
 # -----------------------------------------------------------
-# 4. Entrypoint: starts internal Docker and then Jupyter
+# 4. Entrypoint: starts JupyterLab
 # -----------------------------------------------------------
 WORKDIR /home/jovyan/work
 

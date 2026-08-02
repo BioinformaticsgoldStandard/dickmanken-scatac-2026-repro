@@ -228,3 +228,8 @@ HyDrop_v2_paper/
 # Directory structure is kept via .gitkeep, contents are ignored
 notebooks/notebooks_PUMATAC/*
 !notebooks/notebooks_PUMATAC/.gitkeep
+
+# PUMATAC dependencies (genome indices, blacklists, etc.) - downloaded/
+# generated at runtime, not versioned (17GB+ for the full mm10 index)
+PUMATAC_dependencies/
+*.NOCHR.bed
