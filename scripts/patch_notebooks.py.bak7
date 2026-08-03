@@ -34,9 +34,9 @@ PUMATAC_CLONE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # Original cell cloned/pulled the PUMATAC repo directly into the notebook's
 # working directory, with no pinned tag. This is redundant with, and can
 # silently diverge from, the copy already pinned in the Docker image
-# (Dockerfile: git clone --branch v0.0.1 .../PUMATAC.git /home/jovyan/ATACflow).
+# (Dockerfile: git clone --branch v0.0.1 .../PUMATAC.git /home/jovyan/PUMATAC).
 # We verify the pre-installed copy instead of re-cloning.
-PUMATAC_DIR="/home/jovyan/ATACflow"
+PUMATAC_DIR="/home/jovyan/PUMATAC"
 
 if [ ! -d "$PUMATAC_DIR" ]; then
     echo "ERROR: $PUMATAC_DIR not found. Expected PUMATAC to be pre-installed in the Docker image (see Dockerfile)."
@@ -85,7 +85,7 @@ CELL7_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # binary here. This also resolves an inconsistency in the original
 # tutorial, which used nextflow-22.10.7-all to generate the config but
 # nextflow-21.04.3-all to actually run the pipeline.
-echo "Skipped: using system-wide pinned Nextflow instead."
+print("Skipped: using system-wide pinned Nextflow instead.")
 '''
 
 CELL8_MARKER = "module load Java/17.0.2"
@@ -99,15 +99,9 @@ CELL8_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 #   with "singularity", PUMATAC's generic profile for running with
 #   Apptainer/Singularity as the container engine, confirmed present in
 #   PUMATAC/conf/singularity.config (pinned v0.0.1).
-# Nextflow 21.04.3 only supports Java up to version 15 (hardcoded in its
-# own launcher script's version check), not the newer Java versions that
-# may be the system/conda default. Explicitly pointing JAVA_HOME at a
-# supported version avoids "Cannot find Java or it's a wrong version"
-# errors, without requiring the user's default Java to be downgraded.
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 NXF_WORK=./work
 [ ! -d $NXF_WORK ] && mkdir $NXF_WORK
-nextflow config /home/jovyan/ATACflow/main_atac.nf \\
+nextflow config ./PUMATAC/main_atac.nf \\
     -profile atac_preprocess_rapid,singularity \\
     > atac_preprocess_rapid.config
 '''
@@ -131,18 +125,9 @@ cacheDir = \'PUMATAC_dependencies/cache\'
 
 CELL27_MARKER = "PUMATAC_dependencies/nextflow/nextflow-21.04.3-all -C"
 CELL27_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
-# - Use the system-wide pinned Nextflow instead of a separately downloaded
-#   binary (see patch on the config-generation cell above for details).
-# - Changed -C (use ONLY this config, ignoring everything else) to two
-#   -c flags (merge multiple configs, last one wins on conflicts), adding
-#   config/nextflow_override.config. This project-specific values
-#   (project_name, bwa_fasta genome path, whitelist, executor, bind
-#   mounts, cacheDir) that the tutorial's "2. Edit the .config file"
-#   section shows as illustrative snippets meant for manual copy-paste
-#   into the generated config - not automatically applied by running
-#   this notebook. See config/nextflow_override.config for the actual
-#   values and the reasoning for each one.
-nextflow -c atac_preprocess_rapid.config -c ../../config/nextflow_override.config run /home/jovyan/ATACflow/main_atac.nf -entry atac_preprocess_rapid
+# Use the system-wide pinned Nextflow instead of a separately downloaded
+# binary (see patch on the config-generation cell above for details).
+nextflow -C atac_preprocess_rapid.config run PUMATAC/main_atac.nf -entry atac_preprocess_rapid
 '''
 
 NOTEBOOK0_KERNEL_MARKER = 'KERNEL_PATH=("/data2/florian'
@@ -157,17 +142,6 @@ NOTEBOOK0_KERNEL_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py --
 # originally assumed the "cistopic_20230504" kernel (5_qc_diagnosis.ipynb)
 # have been repointed to "python3" accordingly.
 print("Skipped: no dedicated kernel needed, see comment above.")
-'''
-
-PUMATAC_UPDATE_MARKER = "cd PUMATAC && git pull && cd .."
-PUMATAC_UPDATE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
-# Original cell ran "git pull" to update a PUMATAC copy located relative
-# to the notebook's own directory. In this project, PUMATAC lives at a
-# fixed absolute path (/home/jovyan/ATACflow) and is pinned to tag v0.0.1
-# (see Dockerfile) - running "git pull" there would silently move it past
-# the pinned tag, breaking reproducibility. The version check already
-# happens in 0_resources.ipynb (patched cell verifying the v0.0.1 tag).
-echo "Skipped: PUMATAC version is pinned to v0.0.1, not updated here (see 0_resources.ipynb for the version check)."
 '''
 
 # List of (notebook filename, marker to find, replacement source) patches.
@@ -214,11 +188,6 @@ PATCHES = [
         "0_resources.ipynb",
         NOTEBOOK0_KERNEL_MARKER,
         NOTEBOOK0_KERNEL_REPLACEMENT,
-    ),
-    (
-        "2_running_nextflow_pipeline.ipynb",
-        PUMATAC_UPDATE_MARKER,
-        PUMATAC_UPDATE_REPLACEMENT,
     ),
 ]
 
