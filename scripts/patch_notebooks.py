@@ -85,7 +85,7 @@ CELL7_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # binary here. This also resolves an inconsistency in the original
 # tutorial, which used nextflow-22.10.7-all to generate the config but
 # nextflow-21.04.3-all to actually run the pipeline.
-print("Skipped: using system-wide pinned Nextflow instead.")
+echo "Skipped: using system-wide pinned Nextflow instead."
 '''
 
 CELL8_MARKER = "module load Java/17.0.2"
