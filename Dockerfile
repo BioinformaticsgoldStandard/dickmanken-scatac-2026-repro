@@ -50,7 +50,17 @@ RUN git clone https://github.com/aertslab/pycisTopic.git /home/jovyan/pycisTopic
     && pip install -e /home/jovyan/pycisTopic
 
 # PUMATAC v0.0.1
-RUN git clone --branch v0.0.1 https://github.com/aertslab/PUMATAC.git /home/jovyan/PUMATAC
+# Cloned to /home/jovyan/ATACflow, not /home/jovyan/PUMATAC: a bug in
+# PUMATAC's own src/utils/processes/config.nf checks the cloned directory's
+# name against the string "ATACflow" (PUMATAC's previous name, before a
+# rebrand that never updated this check) to decide how to resolve internal
+# config include paths. Naming the directory "PUMATAC" - the name the
+# tutorial itself instructs you to use - makes that check silently take
+# the wrong branch, breaking config resolution (e.g. "conf/generic.config"
+# resolves to the nonexistent /home/conf/generic.config instead of the
+# correct path). Naming it "ATACflow" instead works around this bug
+# without touching PUMATAC's pinned source code.
+RUN git clone --branch v0.0.1 https://github.com/aertslab/PUMATAC.git /home/jovyan/ATACflow
 
 # Other Python packages with specific versions
 RUN pip install --no-cache-dir \
