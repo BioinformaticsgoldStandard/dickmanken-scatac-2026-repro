@@ -144,6 +144,17 @@ NOTEBOOK0_KERNEL_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py --
 print("Skipped: no dedicated kernel needed, see comment above.")
 '''
 
+PUMATAC_UPDATE_MARKER = "cd PUMATAC && git pull && cd .."
+PUMATAC_UPDATE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
+# Original cell ran "git pull" to update a PUMATAC copy located relative
+# to the notebook's own directory. In this project, PUMATAC lives at a
+# fixed absolute path (/home/jovyan/PUMATAC) and is pinned to tag v0.0.1
+# (see Dockerfile) - running "git pull" there would silently move it past
+# the pinned tag, breaking reproducibility. The version check already
+# happens in 0_resources.ipynb (patched cell verifying the v0.0.1 tag).
+echo "Skipped: PUMATAC version is pinned to v0.0.1, not updated here (see 0_resources.ipynb for the version check)."
+'''
+
 # List of (notebook filename, marker to find, replacement source) patches.
 # Add new entries here as new incompatibilities are found, each with a
 # comment explaining the reason - this list doubles as a changelog of
@@ -188,6 +199,11 @@ PATCHES = [
         "0_resources.ipynb",
         NOTEBOOK0_KERNEL_MARKER,
         NOTEBOOK0_KERNEL_REPLACEMENT,
+    ),
+    (
+        "2_running_nextflow_pipeline.ipynb",
+        PUMATAC_UPDATE_MARKER,
+        PUMATAC_UPDATE_REPLACEMENT,
     ),
 ]
 
