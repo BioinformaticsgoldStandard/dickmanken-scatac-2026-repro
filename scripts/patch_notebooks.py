@@ -107,7 +107,7 @@ CELL8_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 NXF_WORK=./work
 [ ! -d $NXF_WORK ] && mkdir $NXF_WORK
-nextflow config ./PUMATAC/main_atac.nf \\
+nextflow config /home/jovyan/PUMATAC/main_atac.nf \\
     -profile atac_preprocess_rapid,singularity \\
     > atac_preprocess_rapid.config
 '''
@@ -133,7 +133,7 @@ CELL27_MARKER = "PUMATAC_dependencies/nextflow/nextflow-21.04.3-all -C"
 CELL27_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # Use the system-wide pinned Nextflow instead of a separately downloaded
 # binary (see patch on the config-generation cell above for details).
-nextflow -C atac_preprocess_rapid.config run PUMATAC/main_atac.nf -entry atac_preprocess_rapid
+nextflow -C atac_preprocess_rapid.config run /home/jovyan/PUMATAC/main_atac.nf -entry atac_preprocess_rapid
 '''
 
 NOTEBOOK0_KERNEL_MARKER = 'KERNEL_PATH=("/data2/florian'
