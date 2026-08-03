@@ -99,6 +99,12 @@ CELL8_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 #   with "singularity", PUMATAC's generic profile for running with
 #   Apptainer/Singularity as the container engine, confirmed present in
 #   PUMATAC/conf/singularity.config (pinned v0.0.1).
+# Nextflow 21.04.3 only supports Java up to version 15 (hardcoded in its
+# own launcher script's version check), not the newer Java versions that
+# may be the system/conda default. Explicitly pointing JAVA_HOME at a
+# supported version avoids "Cannot find Java or it's a wrong version"
+# errors, without requiring the user's default Java to be downgraded.
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 NXF_WORK=./work
 [ ! -d $NXF_WORK ] && mkdir $NXF_WORK
 nextflow config ./PUMATAC/main_atac.nf \\
