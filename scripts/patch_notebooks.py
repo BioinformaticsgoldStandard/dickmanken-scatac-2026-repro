@@ -131,9 +131,18 @@ cacheDir = \'PUMATAC_dependencies/cache\'
 
 CELL27_MARKER = "PUMATAC_dependencies/nextflow/nextflow-21.04.3-all -C"
 CELL27_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
-# Use the system-wide pinned Nextflow instead of a separately downloaded
-# binary (see patch on the config-generation cell above for details).
-nextflow -C atac_preprocess_rapid.config run /home/jovyan/PUMATAC/main_atac.nf -entry atac_preprocess_rapid
+# - Use the system-wide pinned Nextflow instead of a separately downloaded
+#   binary (see patch on the config-generation cell above for details).
+# - Changed -C (use ONLY this config, ignoring everything else) to two
+#   -c flags (merge multiple configs, last one wins on conflicts), adding
+#   config/nextflow_override.config. This project-specific values
+#   (project_name, bwa_fasta genome path, whitelist, executor, bind
+#   mounts, cacheDir) that the tutorial's "2. Edit the .config file"
+#   section shows as illustrative snippets meant for manual copy-paste
+#   into the generated config - not automatically applied by running
+#   this notebook. See config/nextflow_override.config for the actual
+#   values and the reasoning for each one.
+nextflow -c atac_preprocess_rapid.config -c ../../config/nextflow_override.config run /home/jovyan/PUMATAC/main_atac.nf -entry atac_preprocess_rapid
 '''
 
 NOTEBOOK0_KERNEL_MARKER = 'KERNEL_PATH=("/data2/florian'
