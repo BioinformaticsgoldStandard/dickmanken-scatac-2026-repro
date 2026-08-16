@@ -105,6 +105,7 @@ CELL8_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # supported version avoids "Cannot find Java or it's a wrong version"
 # errors, without requiring the user's default Java to be downgraded.
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+mkdir -p ~/.nextflow/assets
 NXF_WORK=./work
 [ ! -d $NXF_WORK ] && mkdir $NXF_WORK
 nextflow config /home/jovyan/ATACflow/main_atac.nf \\
