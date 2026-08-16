@@ -170,6 +170,34 @@ PUMATAC_UPDATE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 echo "Skipped: PUMATAC version is pinned to v0.0.1, not updated here (see 0_resources.ipynb for the version check)."
 '''
 
+# Marker for the PUMATAC_dependencies download cell: writes into whatever
+# the current working directory happens to be, unpredictable and
+# inconsistent with the absolute path this project's other configs assume.
+PUMATAC_DEPENDENCIES_MARKER = "wget -r -np -nH --cut-dirs 2 -R index.html https://resources.aertslab.org/papers/PUMATAC/PUMATAC_dependencies/"
+PUMATAC_DEPENDENCIES_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
+# Original cell downloaded into whatever the current working directory
+# happened to be when this cell was executed (typically this notebook's
+# own folder, notebooks/notebooks_PUMATAC/) - unpredictable, and
+# inconsistent with the absolute path (/home/jovyan/work/PUMATAC_dependencies)
+# that config/nextflow_override.config and the rest of this project's paths
+# assume. Downloading directly to that fixed location instead.
+# Note: --cut-dirs is 3 here (not 2, as in the original cell), since we
+# already cd into a directory named PUMATAC_dependencies - using --cut-dirs 2
+# would recreate a redundant PUMATAC_dependencies/PUMATAC_dependencies/
+# nested structure (a bug we already hit more than once with similar,
+# manually-run wget commands earlier in this project).
+mkdir -p /home/jovyan/work/PUMATAC_dependencies
+cd /home/jovyan/work/PUMATAC_dependencies
+wget -r -np -nH --cut-dirs 3 -R index.html https://resources.aertslab.org/papers/PUMATAC/PUMATAC_dependencies/
+cd - > /dev/null
+'''
+
+PUMATAC_DEPENDENCIES_TREE_MARKER = "tree -L 2 PUMATAC_dependencies/"
+PUMATAC_DEPENDENCIES_TREE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
+# Updated to the absolute path used by the download cell above.
+tree -L 2 /home/jovyan/work/PUMATAC_dependencies/
+'''
+
 # List of (notebook filename, marker to find, replacement source) patches.
 # Add new entries here as new incompatibilities are found, each with a
 # comment explaining the reason - this list doubles as a changelog of
@@ -219,6 +247,16 @@ PATCHES = [
         "2_running_nextflow_pipeline.ipynb",
         PUMATAC_UPDATE_MARKER,
         PUMATAC_UPDATE_REPLACEMENT,
+    ),
+    (
+        "0_resources.ipynb",
+        PUMATAC_DEPENDENCIES_MARKER,
+        PUMATAC_DEPENDENCIES_REPLACEMENT,
+    ),
+    (
+        "0_resources.ipynb",
+        PUMATAC_DEPENDENCIES_TREE_MARKER,
+        PUMATAC_DEPENDENCIES_TREE_REPLACEMENT,
     ),
 ]
 
