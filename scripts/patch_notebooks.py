@@ -199,6 +199,30 @@ PUMATAC_DEPENDENCIES_TREE_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebo
 tree -L 2 /home/jovyan/work/PUMATAC_dependencies/
 '''
 
+ANNOTATION_DOWNLOAD_MARKER = "annotation_dict = pum.download_genome_annotation(inverse_genome_dict)"
+ANNOTATION_DOWNLOAD_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
+# Original cell fetched the TSS annotation at runtime by querying Ensembl
+# BioMart (pum.download_genome_annotation). That proved unreliable twice
+# in this project: querying the jul2023 archive for mm10 silently returned
+# GRCm39/mm39 coordinates instead (a wrong result that raises no error),
+# and on a later run BioMart returned malformed XML, failing with
+# "not well-formed (invalid token)". Since correct TSS coordinates are
+# essential for the TSS enrichment metric, we load a verified local copy
+# instead (see resources/README.md for provenance and verification).
+import pandas as pd
+
+annotation_dict = {}
+for genome in inverse_genome_dict.keys():
+    annotation_path = os.path.join(
+        os.path.dirname(os.path.abspath("__file__")),
+        "..", "..", "resources", f"{genome}_annotation.tsv"
+    )
+    annotation_dict[genome] = pd.read_csv(annotation_path, sep="\\t", index_col=0)
+    print(f"Loaded local annotation for {genome}: {annotation_path}")
+
+annotation_dict
+'''
+
 # List of (notebook filename, marker to find, replacement source) patches.
 # Add new entries here as new incompatibilities are found, each with a
 # comment explaining the reason - this list doubles as a changelog of
@@ -258,6 +282,11 @@ PATCHES = [
         "0_resources.ipynb",
         PUMATAC_DEPENDENCIES_TREE_MARKER,
         PUMATAC_DEPENDENCIES_TREE_REPLACEMENT,
+    ),
+    (
+        "5_qc_diagnosis.ipynb",
+        ANNOTATION_DOWNLOAD_MARKER,
+        ANNOTATION_DOWNLOAD_REPLACEMENT,
     ),
 ]
 
