@@ -58,9 +58,16 @@ RUN git clone https://github.com/aertslab/pycisTopic.git /home/jovyan/pycisTopic
 # tutorial itself instructs you to use - makes that check silently take
 # the wrong branch, breaking config resolution (e.g. "conf/generic.config"
 # resolves to the nonexistent /home/conf/generic.config instead of the
-# correct path). Naming it "ATACflow" instead works around this bug
-# without touching PUMATAC's pinned source code.
+# correct path).
 RUN git clone --branch v0.0.1 https://github.com/aertslab/PUMATAC.git /home/jovyan/ATACflow
+
+# PUMATAC's source additionally hardcodes ${VSC_SCRATCH}, an environment
+# variable specific to the authors' cluster, as the temporary directory for
+# GATK. The pipeline cannot run elsewhere without rewriting it. See
+# scripts/patch_pumatac_source.py for the full list of patches and the
+# reasoning behind each one.
+COPY --chown=jovyan:users scripts/patch_pumatac_source.py /home/jovyan/patch_pumatac_source.py
+RUN python3 /home/jovyan/patch_pumatac_source.py
 
 # Other Python packages with specific versions
 RUN pip install --no-cache-dir \
