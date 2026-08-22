@@ -223,8 +223,6 @@ data/
 HyDrop_v2_paper/
 
 # PUMATAC tutorial notebooks (downloaded by scripts/download_notebooks.py)
-
-# PUMATAC tutorial notebooks (downloaded by scripts/download_notebooks.py)
 # Directory structure is kept via .gitkeep, contents are ignored
 notebooks/notebooks_PUMATAC/*
 !notebooks/notebooks_PUMATAC/.gitkeep

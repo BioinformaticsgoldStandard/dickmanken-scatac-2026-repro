@@ -15,6 +15,10 @@ services:
     security_opt:
       - seccomp:unconfined
       - systempaths=unconfined
+    # Ray, used by pycisTopic for parallelism, stores objects in /dev/shm.
+    # Docker's 64 MB default forces it to spill to disk, which slows the
+    # topic modelling step considerably.
+    shm_size: '16gb'
     volumes:
       - .:/home/jovyan/work
     environment:

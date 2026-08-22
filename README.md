@@ -121,7 +121,7 @@ Outputs are written to `results/`, which is not versioned.
     +-- data/                               Raw data (runtime, not versioned)
     +-- results/                            Outputs (runtime, not versioned)
 
-`PUMATAC_dependencies/` is downloaded to `/home/jovyan/work/PUMATAC_dependencies`, next to the repository rather than inside it, since it holds around 21 GB of reference data shared across analyses.
+`PUMATAC_dependencies/` holds around 21 GB of reference data and is downloaded at runtime to `/home/jovyan/work/PUMATAC_dependencies`. Inside the container that path is the repository root, since the repository is mounted there; it is excluded from version control.
 
 ## Container architecture
 
@@ -156,6 +156,7 @@ PUMATAC is also cloned into a directory named `ATACflow` rather than `PUMATAC`. 
 | Python         | 3.11                                                        |
 | Apptainer      | 1.4.5                                                       |
 | Nextflow       | 21.04.3, required by PUMATAC's own `nextflowVersion` setting |
+| Java           | 11. Nextflow 21.04.3 rejects anything above 15               |
 | PUMATAC        | v0.0.1                                                      |
 | pycisTopic     | commit 53fe3f7                                              |
 | MACS2          | 2.2.9.1                                                     |
@@ -179,7 +180,7 @@ PUMATAC is also cloned into a directory named `ATACflow` rather than `PUMATAC`. 
 
 **Genome annotation.** The TSS annotation is mm10 (GRCm38). Querying Ensembl BioMart for mm10 can silently return GRCm39 coordinates, which produces a flat and meaningless TSS enrichment profile; a verified copy is versioned in `resources/`.
 
-**Ray and shared memory.** Ray, used by pycisTopic for parallelism, stores objects in `/dev/shm`. Docker allocates 64 MB by default, which forces Ray to spill to disk and slows the LDA step considerably. Increasing `--shm-size` to 10-20 GB is worthwhile on machines with enough RAM.
+**Ray and shared memory.** Ray, used by pycisTopic for parallelism, stores objects in `/dev/shm`. Docker allocates 64 MB by default, which forces Ray to spill to disk and slows the LDA step considerably; `docker-compose.yml` therefore requests 16 GB. On a machine with less RAM, lower `shm_size` accordingly.
 
 ## References
 

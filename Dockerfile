@@ -9,9 +9,11 @@ FROM jupyter/datascience-notebook:python-3.11
 USER root
 
 # Install system dependencies
+# Java 11, not a newer release: Nextflow 21.04.3 hardcodes a version check
+# that only accepts Java up to 15, and rejects anything above it outright.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openjdk-17-jre-headless \
-    wget curl git unzip build-essential \
+    openjdk-11-jre-headless \
+    wget curl git unzip tree build-essential \
     samtools bedtools bwa picard \
     ca-certificates \
     && apt-get clean \
@@ -41,6 +43,10 @@ RUN wget -q https://github.com/nextflow-io/nextflow/releases/download/v21.04.3/n
 # 3. USER section (jovyan): Python packages and specific tools
 # -----------------------------------------------------------
 USER jovyan
+
+# setuptools is pinned below 81: pycisTopic imports pkg_resources, which
+# newer releases no longer provide.
+RUN pip install --no-cache-dir "setuptools<81"
 
 # pycisTopic v2.0a0 - specific commit 53fe3f7
 RUN git clone https://github.com/aertslab/pycisTopic.git /home/jovyan/pycisTopic \
@@ -81,7 +87,13 @@ RUN pip install --no-cache-dir \
     seaborn==0.12.2 \
     palettable==3.3.3 \
     jupyter-black==0.4.0 \
-    pillow
+    pillow \
+    "matplotlib_inline<0.2" \
+    bash_kernel
+
+# Two of the tutorial notebooks run shell commands and declare a Bash
+# kernel, which is not part of the base image.
+RUN python3 -m bash_kernel.install --user
 
 # -----------------------------------------------------------
 # 4. Entrypoint: starts JupyterLab

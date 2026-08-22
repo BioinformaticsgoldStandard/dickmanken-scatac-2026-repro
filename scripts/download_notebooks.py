@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 
-# PUMATAC tutorial repository (the one you actually used)
+# PUMATAC tutorial repository
 REPO_URL = "https://github.com/aertslab/PUMATAC_tutorial.git"
 # Pinned commit: the repo has no tagged releases, so we pin to a specific
 # commit hash instead, to keep the downloaded notebooks' content stable
