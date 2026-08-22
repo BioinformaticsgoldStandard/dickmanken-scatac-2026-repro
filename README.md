@@ -1,208 +1,195 @@
 # dickmanken-scatac-2026-repro
-Reproducibility of Dickmänken et al. (2026) - Nature Communications "Evaluating single-cell ATAC-seq atlasing technologies using sequence-to-function modeling" DOI: 10.1038/s41467-026-68742-4  Dockerized pipeline with JupyterLab: from 10x scATAC-seq FASTQ to microglia-specific FIRE enhancer visualization.
+
+Reproduction of the FIRE enhancer analysis from Dickmänken et al. (2026), Nature Communications, "Evaluating single-cell ATAC-seq atlasing technologies using sequence-to-function modeling", DOI: 10.1038/s41467-026-68742-4.
+
+Containerised pipeline, from raw 10x scATAC-seq FASTQ files to the microglia-specific accessibility of the FIRE enhancer.
 
 ## Overview
 
-This repository provides a fully containerized pipeline to reproduce the analysis of the FIRE enhancer (a microglia-specific regulatory element) from the 10x Genomics scATAC-seq dataset (mouse motor cortex).
+FIRE (Fms intronic regulatory element) is an enhancer in the first intron of Csf1r, specifically accessible in microglia. Figure 3b of the paper shows its cell-type-specific accessibility across scATAC-seq platforms. This repository reproduces that result independently, starting from the public 10x Genomics sample used by the authors.
 
-The pipeline processes raw FASTQ files from the 8k mouse cortex ATAC v2 sample, runs the PUMATAC preprocessing workflow, performs cisTopic topic modeling (LDA), generates pseudobulk BigWig tracks, and visualizes the FIRE enhancer in IGV.
+The pipeline runs PUMATAC preprocessing (barcode correction, trimming, alignment, fragment generation), builds a cisTopic object, performs topic modelling with LDA, clusters and annotates cell types, generates per-cell-type pseudobulk tracks and peaks, and compares the result against the tracks and regions published by the authors.
 
-All software dependencies are fixed to exact versions inside a Docker container, ensuring full reproducibility.
+Sample: 8k adult mouse cortex, ATAC v2, Chromium Controller (10x Genomics, public).
 
----
+## Results
+
+The microglia-specific accessibility of the FIRE enhancer is reproduced. Mean accessibility within chr18:61,108,475-61,108,975:
+
+| Cell type          | Mean accessibility |
+|--------------------|--------------------|
+| Microglia          | 8.13               |
+| Astrocytes         | 0.39               |
+| Endothelial        | 0.34               |
+| Excitatory neurons | 0.24               |
+| Inhibitory neurons | 0.19               |
+| Oligodendrocytes   | 0.04               |
+| OPC                | 0.00               |
+
+Quantitative agreement with the tracks published by the authors for the same platform (Spearman, candidate regulatory regions): astrocytes 0.98, microglia 0.94, oligodendrocytes 0.93, OPC 0.93, endothelial 0.84. Each cell type correlates with its published counterpart far more than with any other type, and hierarchical clustering pairs them without using the labels.
+
+89% of the microglia peaks called here fall within the microglia-derived consensus regions published by the authors.
 
 ## Requirements
 
-- Docker (>= 20.10)
-- Docker Compose (>= 2.0, the "docker compose" plugin - not the legacy "docker-compose" v1 binary)
-- Disk space: ~40 GB (38 GB compressed tar + FASTQ files after extraction)
-- RAM: >= 32 GB recommended (LDA step is memory-intensive)
-- Internet connection: Required for data download (~38 GB)
-
----
+- Docker (>= 20.10) and the `docker compose` plugin (>= 2.0, not the legacy `docker-compose` v1 binary)
+- Disk space: **~150 GB**. Roughly 38 GB for the FASTQ archive, a similar amount once extracted, ~21 GB for the PUMATAC reference dependencies, and the rest for fragments, pseudobulk tracks and intermediate Nextflow files
+- RAM: 32 GB minimum, 64 GB or more recommended. The LDA step is the most memory-intensive
+- Time: the full pipeline takes on the order of 15 hours of compute, dominated by PUMATAC preprocessing (~5 h) and LDA (~6 h). See "Execution order" for a breakdown
+- Internet connection for the initial downloads
 
 ## Quick start
 
-### 1. Clone the repository
+Clone the repository:
 
     git clone https://github.com/BioinformaticsgoldStandard/dickmanken-scatac-2026-repro.git
     cd dickmanken-scatac-2026-repro
 
-### 2. Build and start the container
+Build and start the container:
 
     docker compose build
     docker compose up -d
 
-The first build may take several minutes as it downloads the base image and installs all dependencies.
+Open JupyterLab at http://localhost:8888 . The repository is mounted at `/home/jovyan/work`.
 
-### 3. Access JupyterLab
+Then follow the execution order below.
 
-Open your browser and navigate to http://localhost:8888 . The working directory is /home/jovyan/work and already contains the repository files.
+## Execution order
 
-### 4. Download data and notebooks
+Notebooks from the PUMATAC tutorial keep the numbering given by their authors (0 to 5) and live in `notebooks/notebooks_PUMATAC/`. They are downloaded at setup and patched automatically, and are not versioned here. Notebooks written for this project start at 10 and live in `notebooks/`.
 
-Inside JupyterLab, open and run notebooks/notebooks_and_data.ipynb . This notebook:
+### Setup
 
-- Downloads the 8k mouse cortex ATAC v2 FASTQ files (~38 GB) from 10x Genomics
-- Fetches the PUMATAC analysis notebooks
-- Performs MD5 integrity check on downloaded data
+**`notebooks/notebooks_and_data.ipynb`** — downloads the PUMATAC tutorial notebooks, applies the patches described below, then downloads and verifies the FASTQ archive (~38 GB, MD5-checked). Around 1 hour, mostly download.
 
-Temporary extraction requires ~40 GB free disk space. After download completes, the raw data resides in data/ and the notebooks are ready to use.
+### Preprocessing
 
-### 5. Execute the analysis
+**`notebooks/notebooks_PUMATAC/0_resources.ipynb`** (Bash kernel) — verifies that PUMATAC is installed at the pinned version and downloads the reference dependencies (genome index, blacklists, whitelists, ~21 GB) into `/home/jovyan/work/PUMATAC_dependencies`, outside the repository. Only the first two cells and the download cell are relevant; the rest documents how the authors built resources for other species and can be skipped.
 
-Run the following notebooks in numerical order. Each notebook is self-contained and can be executed cell-by-cell.
+**`notebooks/notebooks_PUMATAC/1_write_metadata.ipynb`** (Python kernel) — generates `metadata.tsv`, listing the FASTQ files and the barcode chemistry. Seconds.
 
-| Notebook                                    | Purpose                                                    |
-|---------------------------------------------|------------------------------------------------------------|
-| notebooks/01_PUMATAC.ipynb                  | PUMATAC preprocessing (Nextflow, alignment, peak calling)  |
-| notebooks/02_Downstream_analysis.ipynb      | cisTopic LDA topic modelling, pseudobulk BigWig generation |
-| notebooks/03_Downstream_clustering.ipynb    | Dimensionality reduction and clustering                    |
-| notebooks/04_Visualization.ipynb            | FIRE enhancer visualisation in IGV and matplotlib          |
+**`notebooks/notebooks_PUMATAC/2_running_nextflow_pipeline.ipynb`** (Bash kernel) — generates the Nextflow config and runs the pipeline. **Skip section 2, "Edit the .config file"**: those cells contain Nextflow config syntax inside Bash cells and are documentation, not executable code. Their content is applied automatically through `config/nextflow_override.config`. Around 5 hours.
 
-All results are written to the results/ directory.
+Notebooks 3 and 4 of the tutorial are marked optional by their authors and do not apply here: notebook 3 is for Bio-Rad ddSEQ samples, notebook 4 for BAM-level analyses such as freemuxlet. Notebook 5 targets an earlier pycisTopic API and is replaced by `10_qc.ipynb`.
 
----
+### Analysis
+
+**`notebooks/10_qc.ipynb`** — quality control on the fragments: TSS enrichment, FRIP, duplication rate, insert size distribution, and Otsu thresholding to select real cells. Around 1 hour.
+
+**`notebooks/11_cistopic_lda.ipynb`** — builds the cisTopic object and trains LDA models with 10 to 50 topics. Around 7 hours.
+
+**Restart the kernel before continuing.** Ray, used internally by the LDA step, and numba, used by UMAP's nearest-neighbour routines, cannot both be initialised in the same kernel session: running UMAP after the LDA raises a numba `TypingError` during compilation.
+
+**`notebooks/12_clustering.ipynb`** — Leiden clustering, UMAP and t-SNE, and cell type annotation from canonical cortical markers. Around 30 minutes, dominated by accessibility imputation.
+
+**`notebooks/13_pseudobulk_peaks.ipynb`** — per-cell-type pseudobulk BED and BigWig files, and MACS2 peak calling. Around 30 minutes.
+
+**`notebooks/14_comparison.ipynb`** — genome-wide Spearman correlation against the tracks published by the authors. Around 30 minutes.
+
+**`notebooks/15_fire_visualization.ipynb`** — accessibility tracks at the Csf1r locus and at the FIRE enhancer. Minutes.
+
+**`notebooks/16_quantitative_validation.ipynb`** — bin-by-bin scatter of the microglia tracks, accessibility profile at the FIRE locus, correlation restricted to candidate regulatory regions, overlap with the published consensus regions, and comparison against the De Rop et al. 2023 scATAC-seq benchmark. Around 30 minutes.
+
+Outputs are written to `results/`, which is not versioned.
 
 ## Repository structure
 
     dickmanken-scatac-2026-repro/
-    +-- Dockerfile                         Container definition (system + Python dependencies)
-    +-- docker-compose.yml                 Docker Compose service configuration
-    +-- entrypoint.sh                      Startup script (JupyterLab)
-    +-- README.md                          This file
-    +-- LICENSE                            MIT License
-    +-- .gitignore                         Excludes data/, downloaded notebooks, etc.
-    +-- notebooks/                         Jupyter notebooks for data download and analysis
-    |   +-- notebooks_and_data.ipynb       Orchestration: downloads PUMATAC tutorial + FASTQ data
-    |   +-- notebooks_PUMATAC/             PUMATAC tutorial notebooks (downloaded, not versioned;
-    |   |                                  only .gitkeep is tracked - see scripts/download_notebooks.py)
-    |   +-- 01_PUMATAC.ipynb               PUMATAC preprocessing (Nextflow, alignment, peak calling)
-    |   +-- 02_Downstream_analysis.ipynb   cisTopic LDA topic modelling, pseudobulk BigWig generation
-    |   +-- 03_Downstream_clustering.ipynb Dimensionality reduction and clustering
-    |   +-- 04_Visualization.ipynb         FIRE enhancer visualisation in IGV and matplotlib
-    +-- scripts/                           Helper scripts
-    |   +-- download_data.py               Downloads FASTQ data, with MD5 check
-    |   +-- download_notebooks.py          Downloads PUMATAC tutorial notebooks (pinned commit)
-    |   +-- patch_notebooks.py             Applies documented patches to the downloaded notebooks
-    +-- data/                              Raw and intermediate data (created at runtime, not versioned)
-    +-- results/                           Output directory (created at runtime)
+    +-- Dockerfile                          Container definition
+    +-- docker-compose.yml                  Service configuration
+    +-- entrypoint.sh                       Starts JupyterLab
+    +-- config/
+    |   +-- nextflow_override.config        Project-specific Nextflow settings
+    +-- notebooks/
+    |   +-- notebooks_and_data.ipynb        Setup: downloads notebooks and data
+    |   +-- 10_qc.ipynb                     Quality control and cell selection
+    |   +-- 11_cistopic_lda.ipynb           cisTopic object and topic modelling
+    |   +-- 12_clustering.ipynb             Clustering and cell type annotation
+    |   +-- 13_pseudobulk_peaks.ipynb       Pseudobulk tracks and peak calling
+    |   +-- 14_comparison.ipynb             Correlation with published tracks
+    |   +-- 15_fire_visualization.ipynb     FIRE enhancer accessibility tracks
+    |   +-- 16_quantitative_validation.ipynb  Further quantitative comparisons
+    |   +-- notebooks_PUMATAC/              Tutorial notebooks (downloaded, not versioned)
+    +-- resources/
+    |   +-- mm10_annotation.tsv             Verified TSS annotation
+    |   +-- README.md                       Provenance and verification
+    +-- scripts/
+    |   +-- download_data.py                FASTQ download with MD5 check
+    |   +-- download_notebooks.py           Tutorial notebooks, pinned commit
+    |   +-- patch_notebooks.py              Patches applied to those notebooks
+    |   +-- patch_pumatac_source.py         Patches applied to the PUMATAC source
+    +-- data/                               Raw data (runtime, not versioned)
+    +-- results/                            Outputs (runtime, not versioned)
 
----
+`PUMATAC_dependencies/` is downloaded to `/home/jovyan/work/PUMATAC_dependencies`, next to the repository rather than inside it, since it holds around 21 GB of reference data shared across analyses.
 
 ## Container architecture
 
-The container is built on the official jupyter/datascience-notebook:python-3.11 image and includes:
+Built on `jupyter/datascience-notebook:python-3.11`.
 
-- System tools: Java, samtools, bedtools, bwa, picard, Apptainer, Nextflow (all pinned to fixed versions, see table below - except samtools/bedtools/bwa/picard, see note).
-- Apptainer (not Docker-in-Docker): Nextflow pipeline processes run via Apptainer, not via a nested Docker daemon. This avoids running the container with privileged: true, which would be problematic on a shared, multi-user host.
-- Minimal added privileges: running Apptainer unprivileged inside Docker requires two narrow security_opt relaxations (seccomp:unconfined, systempaths:unconfined) instead of full privileged: true - see Apptainer's own documentation (https://apptainer.org/docs/admin/main/installation.html) for details. The container otherwise runs as the non-root jovyan user throughout.
-- Volume mount: The entire repository is mounted at /home/jovyan/work, making all files accessible inside JupyterLab.
-- Port: 8888 is exposed for the JupyterLab web interface.
+Nextflow pipeline processes run through **Apptainer**, not through a nested Docker daemon. This avoids `privileged: true`, which would be a problem on a shared host. Running Apptainer unprivileged inside Docker requires two narrow `security_opt` relaxations, `seccomp:unconfined` and `systempaths=unconfined`, documented by Apptainer itself at https://apptainer.org/docs/admin/main/installation.html . The container otherwise runs as the non-root `jovyan` user.
 
-### A note on where the pipeline actually runs
+The repository is mounted at `/home/jovyan/work` and port 8888 is exposed for JupyterLab.
 
-This Docker+Apptainer container is the reference environment for reproducibility: anyone can clone this repository and run the full analysis on their own machine with Docker installed, exactly as described in this README.
+### Where this reproduction was actually run
 
-For this specific reproduction, the heavy computation (PUMATAC preprocessing) was run on a shared university JupyterHub server instead, where Docker access is not available to individual users (JupyterHub itself runs each user's session inside its own container, via DockerSpawner, without access to the host's Docker daemon). Apptainer was installed natively there (via conda, pinned to the same version used in this Docker image) to run the pipeline directly, without going through this container. This is functionally equivalent - the same PUMATAC pipeline, the same Apptainer version, the same singularity Nextflow profile - just without an extra layer of Docker around it on that specific machine.
+The container is the reference environment: anyone can clone this repository and run the analysis on a machine with Docker.
 
----
+The reproduction itself was run on a shared university JupyterHub server, where individual users have no access to the host's Docker daemon, since JupyterHub spawns each session inside its own container. Apptainer was installed natively there, at the same version pinned in this image, and the pipeline was run directly. This is functionally equivalent: same PUMATAC version, same Apptainer version, same Nextflow `singularity` profile, without an extra layer of Docker.
 
-## Fixed package versions
+## Patches applied to upstream code
 
-All software versions are explicitly pinned in the Dockerfile, with one exception noted below. Key components:
+PUMATAC v0.0.1 and its tutorial contain assumptions about the authors' own compute environment that prevent them from running elsewhere. Two scripts apply the necessary changes automatically, and both are safe to run more than once.
 
-| Package / Software       | Version (or commit)          |
-|--------------------------|------------------------------|
-| Python                   | 3.11                         |
-| Apptainer                | 1.4.5                        |
-| Nextflow                 | 21.04.3 (pinned to match PUMATAC's own nextflowVersion requirement) |
-| pycisTopic               | commit 53fe3f7 (bug-fix)     |
-| PUMATAC                  | v0.0.1                       |
-| deepTools                | 3.5.3                        |
-| pyBigWig                 | 0.3.25                       |
-| pandas                   | 2.0.3                        |
-| numpy                    | 1.24.3                       |
-| matplotlib               | 3.7.2                        |
-| seaborn                  | 0.12.2                       |
-| scikit-learn             | 1.3.0                        |
-| MACS2                    | 2.2.9.1                      |
-| palettable               | 3.3.3                        |
-| jupyter-black            | 0.4.0                        |
-| samtools                 | not pinned - see note        |
-| bedtools                 | not pinned - see note        |
-| bwa                      | not pinned - see note        |
-| picard                   | not pinned - see note        |
+**`scripts/patch_notebooks.py`** rewrites cells in the downloaded tutorial notebooks: placeholder data paths, the VSC-specific Nextflow profile and scheduler, a separately downloaded Nextflow binary, a `git pull` that would move PUMATAC past its pinned tag, and the TSS annotation download. It also repoints two notebooks to the standard `python3` kernel: `1_write_metadata.ipynb` declares a Bash kernel although it imports pandas, and `5_qc_diagnosis.ipynb` declares a kernel built from a Singularity image on the authors' cluster. `2_running_nextflow_pipeline.ipynb` correctly keeps the Bash kernel.
 
-Note on samtools/bedtools/bwa/picard: these are currently installed via apt-get install without an explicit version pin, so the exact version depends on the Ubuntu package repository state at build time. This is a known deviation from the "pin everything" principle followed elsewhere in this project, to be addressed in a future revision.
+**`scripts/patch_pumatac_source.py`** rewrites `${VSC_SCRATCH}` in PUMATAC's GATK process, an environment variable that only exists on the authors' cluster. It cannot be fixed from a config file: within a Nextflow script block the variable is resolved as a Groovy local, not as a parameter.
 
-Note on palettable and jupyter-black: these are dependencies of pypumatac.py (a helper module used by the downloaded PUMATAC tutorial notebooks), not of the core reproduction pipeline itself.
+PUMATAC is also cloned into a directory named `ATACflow` rather than `PUMATAC`. Its own `src/utils/processes/config.nf` resolves internal config include paths by comparing the directory name against the string `"ATACflow"`, the project's former name. Using the name the tutorial itself instructs you to use makes that check take the wrong branch, and config resolution fails.
 
-### A note on notebook kernels
+`config/nextflow_override.config` carries the settings that the tutorial presents as snippets to be copy-pasted by hand into the generated config file: genome index, barcode whitelist, local executor instead of PBS, bind mounts and cache directory.
 
-The downloaded PUMATAC tutorial notebooks assume Jupyter kernels that do not exist in this project: a "bash" kernel for 1_write_metadata.ipynb (should be Python, since it imports pandas/pypumatac), and a kernel built from a Singularity image specific to the original authors' VSC cluster for 5_qc_diagnosis.ipynb. scripts/patch_notebooks.py automatically repoints both notebooks to the standard "python3" kernel, into which pycisTopic and its dependencies are installed directly (no dedicated kernel or sys.path workaround needed). 2_running_nextflow_pipeline.ipynb is correctly left on the "bash" kernel, since it runs shell/Nextflow commands rather than Python.
+## Fixed versions
 
-A full frozen list of Python packages is available inside the container (requirements.txt).
+| Component      | Version                                                     |
+|----------------|-------------------------------------------------------------|
+| Python         | 3.11                                                        |
+| Apptainer      | 1.4.5                                                       |
+| Nextflow       | 21.04.3, required by PUMATAC's own `nextflowVersion` setting |
+| PUMATAC        | v0.0.1                                                      |
+| pycisTopic     | commit 53fe3f7                                              |
+| MACS2          | 2.2.9.1                                                     |
+| deepTools      | 3.5.3                                                       |
+| pyBigWig       | 0.3.25                                                      |
+| pandas         | 2.0.3                                                       |
+| numpy          | 1.24.3                                                      |
+| matplotlib     | 3.7.2                                                       |
+| seaborn        | 0.12.2                                                      |
+| scikit-learn   | 1.3.0                                                       |
+| palettable     | 3.3.3                                                       |
+| jupyter-black  | 0.4.0                                                       |
 
----
+`samtools`, `bedtools`, `bwa` and `picard` are installed through `apt-get` without an explicit version pin, so their versions depend on the Ubuntu package repository at build time. This is a known deviation from the approach taken elsewhere in this project.
 
-## Useful commands
+`palettable` and `jupyter-black` are dependencies of `pypumatac.py`, the helper module used by the tutorial notebooks, not of the analysis itself.
 
-| Action                                     | Command                                                                 |
-|--------------------------------------------|-------------------------------------------------------------------------|
-| Check if container is running              | docker ps                                                               |
-| View container logs                        | docker logs scatac-repro                                               |
-| Open a shell inside the container          | docker exec -it scatac-repro /bin/bash                                 |
-| Stop the container                         | docker compose down                                                    |
-| Restart the container                      | docker compose up -d                                                   |
-| Rebuild the image after Dockerfile changes | docker compose build --no-cache && docker compose up -d                |
+## Notes
 
----
+**Chromosome naming.** Whether fragments carry a `chr` prefix depends on the reference genome used for alignment. In this run the main chromosomes are UCSC-style (`chr1`, `chrX`, `chrM`) while scaffolds keep GenBank names. A mismatch between fragments, annotation and regions does not raise an error: it silently produces empty results, which surface much later as an opaque failure. `10_qc.ipynb` therefore checks explicitly that the three inputs share chromosome names.
 
-## Expected result
+**Genome annotation.** The TSS annotation is mm10 (GRCm38). Querying Ensembl BioMart for mm10 can silently return GRCm39 coordinates, which produces a flat and meaningless TSS enrichment profile; a verified copy is versioned in `resources/`.
 
-Successful execution produces:
-
-- Pseudobulk BigWig tracks for each identified cell cluster.
-- UMAP and clustering plots that clearly separate microglia from other cell types.
-- FIRE enhancer visualisation: The region chr18:61,108,475-61,108,975 (mm10) shows a strong, microglia-specific ATAC-seq peak, while other clusters exhibit no signal. This replicates the finding of Dickmänken et al. (2026) that the FIRE enhancer is a robust microglia-specific regulatory element.
-
-Figures and IGV snapshots are saved under results/.
-
----
-
-## Important notes
-
-- Chromosome naming: PUMATAC uses Ensembl-style names (1, 2, ..., MT); IGV expects chr-prefixed names (chr1, chr2, ..., chrM). The visualisation notebook handles this conversion automatically.
-- Genome annotation: The TSS annotation corresponds to mm10 (GRCm38); do not substitute mm39.
-- Memory: The LDA step in cisTopic requires at least 32 GB RAM. Reduce the number of topics or increase Docker's memory allocation if the kernel crashes.
-- Nextflow executor: For this reproduction, the pipeline was run on a shared university server. Resources are limited to those allocated on that machine (see "Container architecture" above for details on where the pipeline actually runs).
-
----
-
-## Reproducibility status
-
-| Component                   | Status                                                |
-|------------------------------|-------------------------------------------------------|
-| Data download                | Reproducible (fixed 10x Genomics URL)                  |
-| Data integrity (MD5)         | Verified (checksum 6dc98e7d...)                        |
-| PUMATAC preprocessing        | Reproducible (version v0.0.1)                          |
-| cisTopic LDA                 | Reproducible (pycisTopic commit 53fe3f7)                |
-| Clustering & visualisation   | Reproducible (fixed random seed, pinned dependencies)   |
-| BigWig generation            | Reproducible (deepTools 3.5.3)                          |
-| FIRE enhancer visualisation  | Reproducible                                            |
-
----
+**Ray and shared memory.** Ray, used by pycisTopic for parallelism, stores objects in `/dev/shm`. Docker allocates 64 MB by default, which forces Ray to spill to disk and slows the LDA step considerably. Increasing `--shm-size` to 10-20 GB is worthwhile on machines with enough RAM.
 
 ## References
 
-- Dickmänken, S. et al. (2026). "Evaluating single-cell ATAC-seq atlasing technologies using sequence-to-function modeling", Nature Communications. DOI: 10.1038/s41467-026-68742-4 (https://doi.org/10.1038/s41467-026-68742-4)
-- 10x Genomics dataset: 8k adult mouse cortex ATAC v2 (https://www.10xgenomics.com/datasets/8k-adult-mouse-cortex-atac-v2-1-standard-2-0-0)
+- Dickmänken, H. et al. (2026). Evaluating single-cell ATAC-seq atlasing technologies using sequence-to-function modeling. *Nature Communications*. https://doi.org/10.1038/s41467-026-68742-4
+- De Rop, F.V. et al. (2023). Systematic benchmarking of single-cell ATAC-sequencing protocols. *Nature Biotechnology*.
+- 10x Genomics dataset: https://www.10xgenomics.com/datasets/8k-adult-mouse-cortex-cells-atac-v2-chromium-controller-2-standard
 - PUMATAC: https://github.com/aertslab/PUMATAC
-- pycisTopic: https://github.com/aertslab/pycisTopic (commit 53fe3f7)
-
----
+- pycisTopic: https://github.com/aertslab/pycisTopic
+- Published tracks and consensus regions: https://ucsctracks.aertslab.org/papers/hydrop_v2_paper/ and https://zenodo.org/records/16569439
 
 ## License
 
-This project is licensed under the MIT License. See LICENSE for the full text.
+MIT. See LICENSE.
