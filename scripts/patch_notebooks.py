@@ -185,8 +185,7 @@ PUMATAC_DEPENDENCIES_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.p
 # Note: --cut-dirs is 3 here (not 2, as in the original cell), since we
 # already cd into a directory named PUMATAC_dependencies - using --cut-dirs 2
 # would recreate a redundant PUMATAC_dependencies/PUMATAC_dependencies/
-# nested structure (a bug we already hit more than once with similar,
-# manually-run wget commands earlier in this project).
+# nested structure.
 mkdir -p /home/jovyan/work/PUMATAC_dependencies
 cd /home/jovyan/work/PUMATAC_dependencies
 wget -r -np -nH --cut-dirs 3 -R index.html https://resources.aertslab.org/papers/PUMATAC/PUMATAC_dependencies/
@@ -202,13 +201,12 @@ tree -L 2 /home/jovyan/work/PUMATAC_dependencies/
 ANNOTATION_DOWNLOAD_MARKER = "annotation_dict = pum.download_genome_annotation(inverse_genome_dict)"
 ANNOTATION_DOWNLOAD_REPLACEMENT = '''# --- PATCHED by scripts/patch_notebooks.py ---
 # Original cell fetched the TSS annotation at runtime by querying Ensembl
-# BioMart (pum.download_genome_annotation). That proved unreliable twice
-# in this project: querying the jul2023 archive for mm10 silently returned
-# GRCm39/mm39 coordinates instead (a wrong result that raises no error),
-# and on a later run BioMart returned malformed XML, failing with
-# "not well-formed (invalid token)". Since correct TSS coordinates are
-# essential for the TSS enrichment metric, we load a verified local copy
-# instead (see resources/README.md for provenance and verification).
+# BioMart (pum.download_genome_annotation), which is not reliable enough
+# for this step: the jul2023 archive returns GRCm39/mm39 coordinates for
+# mm10 without raising any error, and the server may return malformed XML.
+# Correct TSS coordinates are essential for the TSS enrichment metric, so a
+# verified local copy is used instead. See resources/README.md for
+# provenance and verification.
 import pandas as pd
 
 annotation_dict = {}
@@ -308,13 +306,11 @@ def apply_patches():
         for cell in nb.cells:
             if cell.cell_type != "code":
                 continue
-            # The marker is only present in the ORIGINAL, unpatched cell -
-            # once patched, the cell contains the replacement instead, so we
-            # separately recognize the "already patched" case by comparing
-            # against the replacement text itself. Without this, re-running
-            # this script on already-patched notebooks would find no marker
-            # and, misleadingly, report zero patches applied AND zero
-            # skipped, instead of correctly reporting them as up to date.
+            # The marker is only present in the original, unpatched cell:
+            # once patched, the cell contains the replacement instead. The
+            # "already patched" case is therefore recognised by comparing
+            # against the replacement text, so that re-running this script
+            # reports patches as up to date rather than as not found.
             # Check "already patched" FIRST, before checking for the marker.
             # Some replacements intentionally keep the original value
             # unchanged (only adding an explanatory comment above it), in

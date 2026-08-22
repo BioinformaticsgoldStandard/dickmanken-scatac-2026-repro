@@ -13,14 +13,15 @@ MD5: 623be14601d7e22f170e712ac0608e06
 ### Why it is versioned here instead of downloaded
 
 The upstream notebook fetches this annotation at runtime by querying
-Ensembl BioMart (pypumatac.download_genome_annotation). That approach
-proved unreliable twice in this project:
+Ensembl BioMart (pypumatac.download_genome_annotation). That approach is
+not reliable enough for this step, for two independent reasons:
 
-1. Querying the jul2023 Ensembl archive for mm10 silently returned
-   GRCm39/mm39 coordinates instead - a wrong result that does not raise
-   any error, and is easy to miss.
-2. On a later run the BioMart server returned malformed XML, making
-   pybiomart fail with "not well-formed (invalid token)".
+1. Querying the jul2023 Ensembl archive for mm10 returns GRCm39/mm39
+   coordinates instead, without raising any error. The mismatch is silent:
+   the code runs and produces a TSS enrichment profile that is flat and
+   biologically meaningless.
+2. The BioMart server may return malformed XML, in which case pybiomart
+   fails with "not well-formed (invalid token)".
 
 Since correct TSS coordinates are essential for the TSS enrichment
 metric, and this file is small (2.4 MB), it is versioned here as a
