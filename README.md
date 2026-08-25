@@ -115,9 +115,7 @@ Outputs are written to `results/`, which is not versioned.
     |   +-- README.md                       Provenance and verification
     +-- scripts/
     |   +-- download_data.py                FASTQ download with MD5 check
-    |   +-- download_notebooks.py           Tutorial notebooks, pinned commit
-    |   +-- patch_notebooks.py              Patches applied to those notebooks
-    |   +-- patch_pumatac_source.py         Patches applied to the PUMATAC source
+    |   +-- download_notebooks.py           Tutorial notebooks from the fork
     +-- data/                               Raw data (runtime, not versioned)
     +-- results/                            Outputs (runtime, not versioned)
 
@@ -137,15 +135,15 @@ The container is the reference environment: anyone can clone this repository and
 
 The reproduction itself was run on a shared university JupyterHub server, where individual users have no access to the host's Docker daemon, since JupyterHub spawns each session inside its own container. Apptainer was installed natively there, at the same version pinned in this image, and the pipeline was run directly. This is functionally equivalent: same PUMATAC version, same Apptainer version, same Nextflow `singularity` profile, without an extra layer of Docker.
 
-## Patches applied to upstream code
+## Upstream code
 
-PUMATAC v0.0.1 and its tutorial contain assumptions about the authors' own compute environment that prevent them from running elsewhere. Two scripts apply the necessary changes automatically, and both are safe to run more than once.
+PUMATAC v0.0.1 and its tutorial contain assumptions about the authors' own compute environment that prevent them from running elsewhere. Rather than patching the code after downloading it, this reproduction uses forks that carry the changes, so there is one fewer step to run and no dependency on the upstream repositories remaining available.
 
-**`scripts/patch_notebooks.py`** rewrites cells in the downloaded tutorial notebooks: placeholder data paths, the VSC-specific Nextflow profile and scheduler, a separately downloaded Nextflow binary, a `git pull` that would move PUMATAC past its pinned tag, and the TSS annotation download. It also repoints two notebooks to the standard `python3` kernel: `1_write_metadata.ipynb` declares a Bash kernel although it imports pandas, and `5_qc_diagnosis.ipynb` declares a kernel built from a Singularity image on the authors' cluster. `2_running_nextflow_pipeline.ipynb` correctly keeps the Bash kernel.
+**[BioinformaticsgoldStandard/PUMATAC](https://github.com/BioinformaticsgoldStandard/PUMATAC)**, tag `v0.0.1-repro`, carries two portability fixes over upstream v0.0.1. `includeConfig` decided whether a workflow script sat in the repository root or under `src/<tool>/` by comparing the directory name against the string `"ATACflow"`, the project's former name, so cloning under any other name broke config resolution at startup; it now locates the root by checking where the requested config file actually exists. The GATK temporary directory, previously hardcoded to `${VSC_SCRATCH}`, is now read from `params.tools.gatk.tmp_dir` with a sensible fallback — it could not be fixed from a config file, because within a Nextflow script block the name resolves as a Groovy local rather than as a parameter.
 
-**`scripts/patch_pumatac_source.py`** rewrites `${VSC_SCRATCH}` in PUMATAC's GATK process, an environment variable that only exists on the authors' cluster. It cannot be fixed from a config file: within a Nextflow script block the variable is resolved as a Groovy local, not as a parameter.
+**[BioinformaticsgoldStandard/PUMATAC_tutorial](https://github.com/BioinformaticsgoldStandard/PUMATAC_tutorial)**, tag `v1-repro`, carries the notebook changes: placeholder data paths, the VSC-specific Nextflow profile and scheduler, a separately downloaded Nextflow binary, and a `git pull` that would move PUMATAC past its pinned version. Two notebooks are repointed to the standard `python3` kernel — `1_write_metadata.ipynb` declares a Bash kernel although it imports pandas, and `5_qc_diagnosis.ipynb` declares a kernel built from a Singularity image on the authors' cluster. `2_running_nextflow_pipeline.ipynb` correctly keeps the Bash kernel. See the fork's `README_REPRO.md` for the full list.
 
-PUMATAC is also cloned into a directory named `ATACflow` rather than `PUMATAC`. Its own `src/utils/processes/config.nf` resolves internal config include paths by comparing the directory name against the string `"ATACflow"`, the project's former name. Using the name the tutorial itself instructs you to use makes that check take the wrong branch, and config resolution fails.
+Both forks keep upstream on `main` and the changes on a `repro` branch, so the diffs are visible as ordinary commits.
 
 `config/nextflow_override.config` carries the settings that the tutorial presents as snippets to be copy-pasted by hand into the generated config file: genome index, barcode whitelist, local executor instead of PBS, bind mounts and cache directory.
 

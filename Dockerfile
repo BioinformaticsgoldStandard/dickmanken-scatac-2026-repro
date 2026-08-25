@@ -55,25 +55,16 @@ RUN git clone https://github.com/aertslab/pycisTopic.git /home/jovyan/pycisTopic
     && sed -i 's/\.group_by(by="CB", maintain_order=True)/\.group_by("CB", maintain_order=True)/' src/pycisTopic/fragments.py \
     && pip install -e /home/jovyan/pycisTopic
 
-# PUMATAC v0.0.1
-# Cloned to /home/jovyan/ATACflow, not /home/jovyan/PUMATAC: a bug in
-# PUMATAC's own src/utils/processes/config.nf checks the cloned directory's
-# name against the string "ATACflow" (PUMATAC's previous name, before a
-# rebrand that never updated this check) to decide how to resolve internal
-# config include paths. Naming the directory "PUMATAC" - the name the
-# tutorial itself instructs you to use - makes that check silently take
-# the wrong branch, breaking config resolution (e.g. "conf/generic.config"
-# resolves to the nonexistent /home/conf/generic.config instead of the
-# correct path).
-RUN git clone --branch v0.0.1 https://github.com/aertslab/PUMATAC.git /home/jovyan/ATACflow
-
-# PUMATAC's source additionally hardcodes ${VSC_SCRATCH}, an environment
-# variable specific to the authors' cluster, as the temporary directory for
-# GATK. The pipeline cannot run elsewhere without rewriting it. See
-# scripts/patch_pumatac_source.py for the full list of patches and the
-# reasoning behind each one.
-COPY --chown=jovyan:users scripts/patch_pumatac_source.py /home/jovyan/patch_pumatac_source.py
-RUN python3 /home/jovyan/patch_pumatac_source.py
+# PUMATAC v0.0.1 (fork with portability fixes)
+# Fork of aertslab/PUMATAC carrying two portability fixes, both required
+# to run the pipeline outside the authors' cluster: includeConfig locates
+# the repository root by checking where the requested config file exists
+# rather than by matching the directory name against the project's former
+# name, and the GATK temporary directory is configurable instead of being
+# hardcoded to a cluster-specific environment variable. See the fork's
+# commit history for the diffs against upstream v0.0.1.
+RUN git clone --branch v0.0.1-repro \
+    https://github.com/BioinformaticsgoldStandard/PUMATAC.git /home/jovyan/PUMATAC
 
 # Other Python packages with specific versions
 RUN pip install --no-cache-dir \

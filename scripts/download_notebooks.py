@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Download notebooks from the PUMATAC tutorial repository.
-This script clones the PUMATAC_tutorial repository and copies all .ipynb
+Download notebooks from the PUMATAC tutorial fork.
+
+The fork carries the changes needed to run the notebooks outside the
+original authors' cluster. See its README_REPRO.md for what differs from
+upstream and why.
+This script clones that fork and copies all .ipynb
 files, plus pypumatac.py (a helper module imported by several of the
 tutorial notebooks), into notebooks/notebooks_PUMATAC/.
 """
@@ -10,12 +14,11 @@ import shutil
 import subprocess
 import sys
 
-# PUMATAC tutorial repository
-REPO_URL = "https://github.com/aertslab/PUMATAC_tutorial.git"
-# Pinned commit: the repo has no tagged releases, so we pin to a specific
-# commit hash instead, to keep the downloaded notebooks' content stable
-# over time (verified 2026-07-30).
-REPO_COMMIT = "ace7c3c8264f6f51a43cc758ebfe0e1138325e0a"
+# Fork of aertslab/PUMATAC_tutorial, adapted for this reproduction.
+REPO_URL = "https://github.com/BioinformaticsgoldStandard/PUMATAC_tutorial.git"
+# Pinned to a tag rather than a branch, so the notebooks stay fixed even if
+# the fork is updated later. Based on upstream commit ace7c3c.
+REPO_COMMIT = "v1-repro"
 TEMP_DIR = "/tmp/pumatac_tutorial"
 
 
@@ -47,12 +50,12 @@ def download_notebooks():
         print("ERROR: Failed to clone repository.")
         sys.exit(1)
 
-    print(f"Checking out pinned commit {REPO_COMMIT}...")
+    print(f"Checking out {REPO_COMMIT}...")
     cmd = ["git", "-C", TEMP_DIR, "checkout", REPO_COMMIT]
     result = subprocess.run(cmd)
 
     if result.returncode != 0:
-        print("ERROR: Failed to checkout pinned commit.")
+        print(f"ERROR: Failed to checkout {REPO_COMMIT}.")
         sys.exit(1)
 
     # Files required to run the tutorial notebooks: the notebooks themselves,
