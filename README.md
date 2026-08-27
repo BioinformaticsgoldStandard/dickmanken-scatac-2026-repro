@@ -26,7 +26,15 @@ The microglia-specific accessibility of the FIRE enhancer is reproduced. Mean ac
 | Oligodendrocytes   | 0.04               |
 | OPC                | 0.00               |
 
+![Accessibility at the FIRE enhancer across cell types](docs/fire_zoom.png)
+
+*Accessibility at the FIRE enhancer (chr18:61,108,475-61,108,975) across the seven annotated cell types, on a shared y scale. Produced by `notebooks/15_fire_visualization.ipynb`.*
+
 Quantitative agreement with the tracks published by the authors for the same platform (Spearman, candidate regulatory regions): astrocytes 0.98, microglia 0.94, oligodendrocytes 0.93, OPC 0.93, endothelial 0.84. Each cell type correlates with its published counterpart far more than with any other type, and hierarchical clustering pairs them without using the labels.
+
+![Spearman correlation on candidate regulatory regions](docs/correlation_heatmap_rdhs.png)
+
+*Spearman correlation between the tracks produced here (`MIO_`) and those published by the authors for the same platform (`AUT_`), restricted to candidate regulatory regions. Produced by `notebooks/16_quantitative_validation.ipynb`.*
 
 89% of the microglia peaks called here fall within the microglia-derived consensus regions published by the authors.
 
@@ -56,15 +64,15 @@ Then follow the execution order below.
 
 ## Execution order
 
-Notebooks from the PUMATAC tutorial keep the numbering given by their authors (0 to 5) and live in `notebooks/notebooks_PUMATAC/`. They are downloaded at setup and patched automatically, and are not versioned here. Notebooks written for this project start at 10 and live in `notebooks/`.
+Notebooks from the PUMATAC tutorial keep the numbering given by their authors (0 to 5) and live in `notebooks/notebooks_PUMATAC/`. They are downloaded at setup from a fork carrying the changes needed to run them here, and are not versioned in this repository. Notebooks written for this project start at 10 and live in `notebooks/`.
 
 ### Setup
 
-**`notebooks/notebooks_and_data.ipynb`** — downloads the PUMATAC tutorial notebooks, applies the patches described below, then downloads and verifies the FASTQ archive (~38 GB, MD5-checked). Around 1 hour, mostly download.
+**`notebooks/notebooks_and_data.ipynb`** — downloads the PUMATAC tutorial notebooks from the fork, then downloads and verifies the FASTQ archive (~38 GB, MD5-checked). Around 1 hour, mostly download.
 
 ### Preprocessing
 
-**`notebooks/notebooks_PUMATAC/0_resources.ipynb`** (Bash kernel) — verifies that PUMATAC is installed at the pinned version and downloads the reference dependencies (genome index, blacklists, whitelists, ~21 GB) into `/home/jovyan/work/PUMATAC_dependencies`, outside the repository. Only the first two cells and the download cell are relevant; the rest documents how the authors built resources for other species and can be skipped.
+**`notebooks/notebooks_PUMATAC/0_resources.ipynb`** (Bash kernel) — verifies that PUMATAC is installed at the pinned version and downloads the reference dependencies (genome index, blacklists, whitelists, ~21 GB) into `/home/jovyan/work/PUMATAC_dependencies`. Only the PUMATAC check, the download cell and the `tree` that follows it are relevant; the rest documents how the authors built resources for other species and can be skipped.
 
 **`notebooks/notebooks_PUMATAC/1_write_metadata.ipynb`** (Python kernel) — generates `metadata.tsv`, listing the FASTQ files and the barcode chemistry. Seconds.
 
@@ -100,6 +108,7 @@ Outputs are written to `results/`, which is not versioned.
     +-- entrypoint.sh                       Starts JupyterLab
     +-- config/
     |   +-- nextflow_override.config        Project-specific Nextflow settings
+    +-- docs/                               Figures shown in this README
     +-- notebooks/
     |   +-- notebooks_and_data.ipynb        Setup: downloads notebooks and data
     |   +-- 10_qc.ipynb                     Quality control and cell selection
@@ -133,7 +142,7 @@ The repository is mounted at `/home/jovyan/work` and port 8888 is exposed for Ju
 
 The container is the reference environment: anyone can clone this repository and run the analysis on a machine with Docker.
 
-The reproduction itself was run on a shared university JupyterHub server, where individual users have no access to the host's Docker daemon, since JupyterHub spawns each session inside its own container. Apptainer was installed natively there, at the same version pinned in this image, and the pipeline was run directly. This is functionally equivalent: same PUMATAC version, same Apptainer version, same Nextflow `singularity` profile, without an extra layer of Docker.
+The reproduction itself was run on a shared university JupyterHub server. The architecture there is the same: JupyterHub spawns each session inside a Docker container, built from an image derived from this `Dockerfile`, and Apptainer runs within it. The only difference is what starts the container — JupyterHub rather than `docker compose` — and the Apptainer version, 1.3.6 rather than 1.4.5. On that host FUSE is available, so `--unsquash` was not needed; it is kept in the configuration because where FUSE is unavailable it makes the difference between working and not working.
 
 ## Upstream code
 
@@ -155,7 +164,7 @@ Both forks keep upstream on `main` and the changes on a `repro` branch, so the d
 | Apptainer      | 1.4.5                                                       |
 | Nextflow       | 21.04.3, required by PUMATAC's own `nextflowVersion` setting |
 | Java           | 11. Nextflow 21.04.3 rejects anything above 15               |
-| PUMATAC        | v0.0.1                                                      |
+| PUMATAC        | fork at `v0.0.1-repro`, based on upstream v0.0.1             |
 | pycisTopic     | commit 53fe3f7                                              |
 | MACS2          | 2.2.9.1                                                     |
 | deepTools      | 3.5.3                                                       |
@@ -167,6 +176,8 @@ Both forks keep upstream on `main` and the changes on a `repro` branch, so the d
 | scikit-learn   | 1.3.0                                                       |
 | palettable     | 3.3.3                                                       |
 | jupyter-black  | 0.4.0                                                       |
+| setuptools     | < 81, which still provides `pkg_resources`                   |
+| matplotlib-inline | < 0.2, incompatible with the pinned matplotlib            |
 
 `samtools`, `bedtools`, `bwa` and `picard` are installed through `apt-get` without an explicit version pin, so their versions depend on the Ubuntu package repository at build time. This is a known deviation from the approach taken elsewhere in this project.
 
