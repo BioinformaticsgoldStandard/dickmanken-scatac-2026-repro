@@ -142,7 +142,7 @@ The repository is mounted at `/home/jovyan/work` and port 8888 is exposed for Ju
 
 The container is the reference environment: anyone can clone this repository and run the analysis on a machine with Docker.
 
-The reproduction itself was run on a shared university JupyterHub server. The architecture there is the same: JupyterHub spawns each session inside a Docker container, built from an image derived from this `Dockerfile`, and Apptainer runs within it. The only difference is what starts the container — JupyterHub rather than `docker compose` — and the Apptainer version, 1.3.6 rather than 1.4.5. On that host FUSE is available, so `--unsquash` was not needed; it is kept in the configuration because where FUSE is unavailable it makes the difference between working and not working.
+The reproduction itself was run on a shared university JupyterHub server. The architecture there is the same: JupyterHub spawns each session inside a Docker container, built from an image derived from this `Dockerfile`, and Apptainer runs within it. The only difference is what starts the container — JupyterHub rather than `docker compose`. Both run Apptainer 1.3.6, the version pinned in the Dockerfile and present on the deployment host. On that host FUSE is available, so `--unsquash` was not needed; it is kept in the configuration because where FUSE is unavailable it makes the difference between working and not working.
 
 ## Upstream code
 
@@ -161,7 +161,7 @@ Both forks keep upstream on `main` and the changes on a `repro` branch, so the d
 | Component      | Version                                                     |
 |----------------|-------------------------------------------------------------|
 | Python         | 3.11                                                        |
-| Apptainer      | 1.4.5                                                       |
+| Apptainer      | 1.3.6                                                       |
 | Nextflow       | 21.04.3, required by PUMATAC's own `nextflowVersion` setting |
 | Java           | 11. Nextflow 21.04.3 rejects anything above 15               |
 | PUMATAC        | fork at `v0.0.1-repro`, based on upstream v0.0.1             |
