@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---- Apptainer installation ----
 # Installed from the official .deb release asset (pinned version) rather
 # than via PPA, to avoid depending on an external repository at build time.
-ARG APPTAINER_VERSION=1.4.5
+ARG APPTAINER_VERSION=1.3.6
 RUN wget -q https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb -O /tmp/apptainer.deb \
     && apt-get update && apt-get install -y /tmp/apptainer.deb \
     && rm /tmp/apptainer.deb \
